@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>NeuroScan AI | Clasificación Clínica de RM Cerebrales</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css', v=asset_version('style.css')) }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
+          rel="stylesheet">
+</head>
+
+<body>
+
+    <header class="topbar">
+        <a class="brand" href="/" aria-label="NeuroScan AI inicio">
+            <span class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/>
+                    <path d="M12 6v12"/>
+                    <path d="M6 12h12"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            </span>
+            <span class="brand-text">NeuroScan <span class="brand-sub">AI</span></span>
+        </a>
+
+        <div class="system-status">
+            <span class="status-indicator"></span>
+            <span class="status-text">Sistema de diagnóstico asistido</span>
+        </div>
+    </header>
+
+    <main class="page">
+
+        <header class="hero-header">
+            <p class="academic-tag">Plataforma Académica de Diagnóstico Asistido por IA</p>
+            <h1>Análisis y Clasificación de Resonancias Magnéticas Cerebrales</h1>
+            <p class="hero-subtext">
+                Herramienta experimental para la evaluación asistida de imágenes por resonancia magnética (RM) mediante modelos de visión por computador y lenguaje.
+            </p>
+        </header>
+
+        {% if error %}
+        <div class="alert alert-error" role="alert">
+            <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        <section class="workspace">
+
+            <!-- PANEL IZQUIERDO: SELECCIÓN Y CARGA DE IMAGEN -->
+            <article class="panel upload-panel">
+
+                <header class="panel-header">
+                    <div>
+                        <span class="step-badge">Fase 01</span>
+                        <h2>Selección de Imagen RM</h2>
+                    </div>
+                    <span class="file-tag">Formato DICOM / PNG / JPG</span>
+                </header>
+
+                <form action="/predict" method="POST" enctype="multipart/form-data" class="upload-form">
+
+                    <label class="upload-dropzone" for="image-input" id="upload-area">
+
+                        <img
+                            id="image-preview"
+                            class="image-preview"
+                            alt="Vista previa de la resonancia magnética seleccionada"
+                            hidden
+                        >
+
+                        <div class="upload-placeholder-content" id="upload-placeholder">
+                            <div class="upload-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="17 8 12 3 7 8"/>
+                                    <line x1="12" y1="3" x2="12" y2="15"/>
+                                </svg>
+                            </div>
+
+                            <h3 id="upload-title">Cargar Resonancia Magnética</h3>
+                            <p id="upload-description">
+                                Arrastra o selecciona una imagen de corte sagital, axial o coronal.
+                            </p>
+                            <span class="btn btn-secondary" id="upload-button">Explorar archivos</span>
+                            <span class="file-formats">Procesamiento local mediante red neuronal convolucional</span>
+                        </div>
+
+                        <input
+                            type="file"
+                            name="image"
+                            id="image-input"
+                            accept="image/*"
+                            required
+                        >
+
+                    </label>
+
+                    <div class="selected-file-banner" id="selected-file" hidden>
+                        <span class="file-check" aria-hidden="true">✓</span>
+                        <div class="file-message">
+                            <strong>Imagen cargada correctamente</strong>
+                            <span id="file-name"></span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <span>Iniciar Clasificación de Imagen</span>
+                        <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                            <polyline points="12 5 19 12 12 19"/>
+                        </svg>
+                    </button>
+
+                    <p class="privacy-note">
+                        Procesamiento confidencial y seguro dentro de la infraestructura local.
+                    </p>
+
+                </form>
+            </article>
+
+            <!-- PANEL DERECHO: RESULTADO DE CLASIFICACIÓN -->
+            <article class="panel classification-panel">
+
+                <header class="panel-header">
+                    <div>
+                        <span class="step-badge">Fase 02</span>
+                        <h2>Resultado del Análisis</h2>
+                    </div>
+                </header>
+
+                {% if prediction %}
+
+                <div class="classification-result-card">
+
+                    <div class="status-chip success">
+                        <span class="status-dot-sm"></span>
+                        Análisis finalizado con éxito
+                    </div>
+
+                    <div class="prediction-header">
+                        <span class="meta-label">Clasificación Identificada</span>
+                        <h3 class="classification-name">{{ prediction }}</h3>
+                        {% if prediction_es %}
+                        <p class="prediction-es">{{ prediction_es }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="confidence-section">
+                        <div class="confidence-header">
+                            <span class="confidence-label">Nivel de Confianza del Modelo</span>
+                            <strong class="confidence-value">{{ "%.2f"|format(confidence) }}%</strong>
+                        </div>
+                        <div class="confidence-track" role="progressbar" aria-valuenow="{{ confidence }}" aria-valuemin="0" aria-valuemax="100">
+                            <div class="confidence-fill" style="width: {{ confidence }}%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="clinical-disclaimer-box">
+                        <svg class="disclaimer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="16" x2="12" y2="12"/>
+                            <line x1="12" y1="8" x2="12.01" y2="8"/>
+                        </svg>
+                        <p>
+                            <strong>Aviso importante:</strong> Esta herramienta de clasificación asistida por IA tiene fines estrictamente académicos e informativos. No constituye ni reemplaza el juicio clínico ni el diagnóstico médico profesional.
+                        </p>
+                    </div>
+
+                </div>
+
+                {% else %}
+
+                <div class="classification-empty-state">
+                    <div class="empty-state-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                    </div>
+                    <h3>Esperando Resonancia Magnética</h3>
+                    <p>
+                        Carga una imagen en el panel izquierdo y presiona <strong>Iniciar Clasificación de Imagen</strong> para obtener la predicción del modelo.
+                    </p>
+                </div>
+
+                {% endif %}
+
+            </article>
+
+        </section>
+
+        {% if recommendation %}
+        <section class="panel recommendation-section">
+
+            <header class="panel-header">
+                <div>
+                    <span class="step-badge">Fase 03</span>
+                    <h2>Recomendación Clínica Asistida por LLM</h2>
+                </div>
+                <span class="file-tag">{{ variant }}</span>
+            </header>
+
+            <div class="recommendation-card">
+
+                <div class="status-chip info">
+                    <span class="status-dot-sm"></span>
+                    Orientación clínica generada por modelo de lenguaje
+                </div>
+
+                <div class="recommendation-content">
+                    <p class="recommendation-text">{{ recommendation }}</p>
+                </div>
+
+                <div class="recommendation-meta-grid">
+                    <div class="meta-item">
+                        <span class="meta-item-label">Hallazgo Principal</span>
+                        <strong class="meta-item-value">{{ prediction }}</strong>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-item-label">Confianza del Modelo</span>
+                        <strong class="meta-item-value">{{ "%.1f"|format(confidence) }}%</strong>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-item-label">Variante de Análisis</span>
+                        <strong class="meta-item-value">{{ variant }}</strong>
+                    </div>
+                </div>
+
+                <div class="feedback-section">
+                    <h4 class="feedback-question">
+                        Evaluación del informe generado (Retroalimentación de Uso):
+                    </h4>
+
+                    <div class="stars-rating" id="stars" role="group" aria-label="Calificación de 1 a 5 estrellas">
+                        {% for i in range(1, 6) %}
+                        <button type="button" class="star-btn" data-value="{{ i }}" aria-label="{{ i }} estrellas">★</button>
+                        {% endfor %}
+                    </div>
+
+                    <div class="feedback-actions">
+                        <button type="button" class="btn btn-secondary btn-sm" id="feedback-submit" disabled>
+                            Enviar valoración
+                        </button>
+                    </div>
+
+                    <p class="feedback-message" id="feedback-message" aria-live="polite" hidden></p>
+                </div>
+
+                <input type="hidden" id="feedback-class" value="{{ prediction }}">
+                <input type="hidden" id="feedback-variant" value="{{ variant_idx }}">
+
+            </div>
+
+        </section>
+        {% endif %}
+
+        <footer class="clinical-footer">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <strong>NeuroScan AI</strong> — Sistema Académico de Clasificación Cerebral
+                </div>
+                <p class="footer-academic-note">
+                    Desarrollado exclusivamente con fines de investigación académica e innovación asistida por Inteligencia Artificial.
+                </p>
+                <p class="footer-disclaimer">
+                    Atención: Esta aplicación no emite diagnósticos médicos autorizados ni sustituye la consulta con un médico o especialista en radiología.
+                </p>
+            </div>
+        </footer>
+
+    </main>
+
+    <script>
+        const imageInput = document.getElementById("image-input");
+        const uploadArea = document.getElementById("upload-area");
+        const uploadTitle = document.getElementById("upload-title");
+        const uploadDescription = document.getElementById("upload-description");
+        const selectedFile = document.getElementById("selected-file");
+        const fileName = document.getElementById("file-name");
+        const imagePreview = document.getElementById("image-preview");
+        const uploadButton = document.getElementById("upload-button");
+        const uploadPlaceholder = document.getElementById("upload-placeholder");
+        let previewUrl = null;
+
+        function limpiarVistaPrevia() {
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+                previewUrl = null;
+            }
+            imagePreview.removeAttribute("src");
+            imagePreview.hidden = true;
+            uploadArea.classList.remove("has-preview");
+            uploadButton.textContent = "Explorar archivos";
+        }
+
+        function mostrarVistaPrevia(file) {
+            limpiarVistaPrevia();
+            previewUrl = URL.createObjectURL(file);
+            imagePreview.src = previewUrl;
+            imagePreview.hidden = false;
+            uploadArea.classList.add("has-preview");
+            uploadButton.textContent = "Cambiar imagen";
+        }
+
+        imageInput.addEventListener("change", function () {
+            const file = this.files[0];
+
+            if (file) {
+                if (!file.type.startsWith("image/")) {
+                    this.value = "";
+                    selectedFile.hidden = true;
+                    uploadArea.classList.remove("has-file");
+                    limpiarVistaPrevia();
+                    uploadTitle.textContent = "Cargar Resonancia Magnética";
+                    uploadDescription.textContent =
+                        "Arrastra o selecciona una imagen de corte sagital, axial o coronal.";
+                    alert("Selecciona un archivo de imagen válido.");
+                    return;
+                }
+
+                mostrarVistaPrevia(file);
+                uploadTitle.textContent = "Imagen lista para análisis";
+                uploadDescription.textContent =
+                    "Archivo verificado correctamente.";
+                fileName.textContent = file.name;
+                selectedFile.hidden = false;
+                uploadArea.classList.add("has-file");
+            } else {
+                limpiarVistaPrevia();
+                uploadTitle.textContent = "Cargar Resonancia Magnética";
+                uploadDescription.textContent =
+                    "Arrastra o selecciona una imagen de corte sagital, axial o coronal.";
+                selectedFile.hidden = true;
+                uploadArea.classList.remove("has-file");
+            }
+        });
+
+        // Drag & drop visual cues
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadArea.classList.add('is-dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadArea.classList.remove('is-dragover');
+            }, false);
+        });
+
+        // --- Calificación de la recomendación (aprendizaje por refuerzo) ---
+        const stars = document.getElementById("stars");
+        const feedbackMessage = document.getElementById("feedback-message");
+        const feedbackSubmit = document.getElementById("feedback-submit");
+
+        if (stars && feedbackSubmit) {
+            const botones = Array.from(stars.querySelectorAll(".star-btn"));
+            let valorSeleccionado = 0;
+            let enviando = false;
+            let enviada = false;
+
+            function pintarEstrellas(valor) {
+                botones.forEach(function (boton, indice) {
+                    const activa = indice < valor;
+                    boton.classList.toggle("filled", activa);
+                    boton.setAttribute("aria-pressed", activa ? "true" : "false");
+                });
+            }
+
+            pintarEstrellas(0);
+
+            botones.forEach(function (boton) {
+                boton.addEventListener("click", function () {
+                    if (enviando || enviada) {
+                        return;
+                    }
+
+                    valorSeleccionado = parseInt(this.dataset.value, 10);
+                    pintarEstrellas(valorSeleccionado);
+                    feedbackSubmit.disabled = false;
+                    feedbackMessage.hidden = true;
+                    feedbackMessage.classList.remove("error");
+                });
+            });
+
+            feedbackSubmit.addEventListener("click", function () {
+                if (!valorSeleccionado || enviando || enviada) {
+                    return;
+                }
+
+                enviando = true;
+                feedbackSubmit.disabled = true;
+                feedbackSubmit.textContent = "Enviando...";
+                feedbackMessage.hidden = true;
+
+                fetch("/feedback", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        clase: document.getElementById("feedback-class").value,
+                        variante: document.getElementById("feedback-variant").value,
+                        estrellas: valorSeleccionado
+                    })
+                })
+                    .then(function (respuesta) {
+                        return respuesta.json()
+                            .catch(function () {
+                                return { ok: false, error: "Respuesta no válida del servidor." };
+                            })
+                            .then(function (datos) {
+                                return { respuestaOk: respuesta.ok, datos: datos };
+                            });
+                    })
+                    .then(function (resultado) {
+                        const datos = resultado.datos;
+
+                        if (!resultado.respuestaOk || !datos.ok) {
+                            throw new Error(datos.error || "No se pudo registrar la valoración.");
+                        }
+
+                        enviada = true;
+                        botones.forEach(function (boton) {
+                            boton.disabled = true;
+                        });
+                        feedbackSubmit.disabled = true;
+                        feedbackSubmit.textContent = "Valoración registrada";
+                        feedbackSubmit.classList.add("sent");
+                        feedbackMessage.hidden = false;
+                        feedbackMessage.classList.remove("error");
+                        feedbackMessage.textContent =
+                            datos.mensaje + " (Q = " + datos.q_valor + ")";
+                    })
+                    .catch(function (error) {
+                        enviando = false;
+                        feedbackSubmit.disabled = false;
+                        feedbackSubmit.textContent = "Enviar valoración";
+                        feedbackMessage.hidden = false;
+                        feedbackMessage.classList.add("error");
+                        feedbackMessage.textContent =
+                            error.message || "No se pudo enviar la valoración.";
+                    });
+            });
+        }
+    </script>
+
+</body>
+</html>
